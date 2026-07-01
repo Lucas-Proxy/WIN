@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #090D13;
+    --bg-grid: #0D131B;
+    --panel: #10161F;
+    --panel-alt: #141B25;
+    --border: #212A38;
+    --border-soft: #1A222E;
+    --text: #E7ECF2;
+    --text-dim: #7C8798;
+    --text-faint: #4E586A;
+    --accent: #2BE7CB;
+    --accent-dim: #1B9E8B;
+    --accent-glow: rgba(43,231,203,0.35);
+    --danger: #FF6B6B;
+    --danger-dim: #B5474A;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  body{
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 34px 34px;
+    background-position: center;
+  }
+
+  .stage{ max-width: 640px; margin: 0 auto; padding: 40px 20px 60px; }
+
+  header{ margin-bottom: 28px; }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    color: var(--accent-dim); text-transform: uppercase;
+    margin-bottom: 10px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{
+    content:""; width:6px; height:6px; border-radius:50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); display:inline-block;
+  }
+  .eyebrow.locked{ color: var(--danger-dim); }
+  .eyebrow.locked::before{ background: var(--danger); box-shadow: 0 0 8px rgba(255,107,107,0.35); }
+
+  h1{ font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub{ color: var(--text-dim); font-size: 14.5px; margin: 0; line-height: 1.5; }
+
+  /* Gate (loading / negado / erro) */
+  #gate{ margin-top: 26px; }
+  .gate-card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .gate-card.denied{ border-color: rgba(255,107,107,0.35); }
+  .gate-title{ font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .gate-title.denied{ color: var(--danger); }
+  .gate-text{ color: var(--text-dim); font-size: 13.5px; line-height: 1.6; }
+  .gate-email{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--panel-alt);
+    border: 1px solid var(--border-soft);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+  .dot-loader{ display:inline-flex; gap:4px; margin-right: 8px; vertical-align: middle; }
+  .dot-loader span{
+    width:5px; height:5px; border-radius:50%; background: var(--accent-dim);
+    animation: blink 1.1s infinite ease-in-out;
+  }
+  .dot-loader span:nth-child(2){ animation-delay: .15s; }
+  .dot-loader span:nth-child(3){ animation-delay: .3s; }
+  @keyframes blink{ 0%,80%,100%{ opacity:.25 } 40%{ opacity:1 } }
+
+  /* Search */
+  #app{ display:none; }
+
+  .search-wrap{
+    position: relative; margin-top: 26px; border-radius: 10px;
+    overflow: hidden; background: var(--panel); border: 1px solid var(--border);
+  }
+  .search-wrap.pulse{ animation: borderPulse 0.9s ease-out; }
+  @keyframes borderPulse{
+    0%{ border-color: var(--accent); box-shadow: 0 0 0 0 var(--accent-glow); }
+    100%{ border-color: var(--border); box-shadow: 0 0 0 8px rgba(43,231,203,0); }
+  }
+  .search-inner{ display:flex; align-items:center; gap: 10px; padding: 4px 6px 4px 16px; }
+  .search-icon{ width:16px; height:16px; flex-shrink:0; color: var(--text-faint); }
+  #searchInput{
+    flex:1; background: transparent; border: none; outline: none; color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 14px 6px;
+  }
+  #searchInput::placeholder{ color: var(--text-faint); }
+  .kbd{
+    font-family:'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);
+    border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px; margin-right: 10px; flex-shrink:0;
+  }
+  .scan-bar{ height: 2px; width: 100%; background: var(--border-soft); position: relative; overflow: hidden; }
+  .scan-bar::after{
+    content:""; position:absolute; top:0; left:0; height:100%; width: 40%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    transform: translateX(-100%); opacity: 0;
+  }
+  .scan-bar.run::after{ animation: sweep 0.85s ease-out; }
+  @keyframes sweep{ 0%{ transform: translateX(-100%); opacity: 1; } 100%{ transform: translateX(250%); opacity: 0; } }
+
+  .match-list{ margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .match-chip{
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: var(--panel);
+    border: 1px solid var(--border); color: var(--text-dim); padding: 7px 12px; border-radius: 7px;
+    cursor: pointer; transition: border-color .15s, color .15s;
+  }
+  .match-chip:hover{ border-color: var(--accent-dim); color: var(--text); }
+  .match-chip.active{ border-color: var(--accent); color: var(--accent); background: rgba(43,231,203,0.06); }
+
+  .hint, .empty{ margin-top: 22px; color: var(--text-faint); font-size: 13.5px; line-height: 1.6; }
+  .empty{ color: var(--text-dim); }
+  .empty b{ color: var(--text); font-family:'JetBrains Mono', monospace; font-weight: 500; }
+
+  .result-card{
+    margin-top: 22px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; position: relative; padding: 22px 22px 8px;
+  }
+  .corner{ position:absolute; width: 14px; height: 14px; border: 2px solid var(--accent-dim); }
+  .corner.tl{ top:-1px; left:-1px; border-right:none; border-bottom:none; border-top-left-radius: 10px;}
+  .corner.tr{ top:-1px; right:-1px; border-left:none; border-bottom:none; border-top-right-radius: 10px;}
+  .corner.bl{ bottom:-1px; left:-1px; border-right:none; border-top:none; border-bottom-left-radius: 10px;}
+  .corner.br{ bottom:-1px; right:-1px; border-left:none; border-top:none; border-bottom-right-radius: 10px;}
+
+  .result-head{ display:flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .result-title{ font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 600; color: var(--text); }
+  .result-model{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-faint);
+    background: var(--panel-alt); border: 1px solid var(--border-soft); padding: 3px 8px; border-radius: 5px;
+  }
+
+  .field-list{ margin-top: 14px; border-top: 1px solid var(--border-soft); }
+  .field-row{ display:flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
+  .field-label{
+    width: 78px; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint);
+  }
+  .field-value-wrap{ flex: 1; min-width: 0; display:flex; align-items:center; gap: 8px; }
+  .field-value{
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .field-value a{ color: var(--accent); text-decoration: none; }
+  .field-value a:hover{ text-decoration: underline; }
+  .field-value.secret{ letter-spacing: 0.08em; }
+
+  .icon-btn{
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel-alt); color: var(--text-dim); display:flex; align-items:center; justify-content:center;
+    cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+  }
+  .icon-btn:hover{ border-color: var(--accent-dim); color: var(--accent); }
+  .icon-btn.copied{ border-color: var(--accent); color: var(--accent); background: rgba(43,231,203,0.08); }
+  .icon-btn svg{ width:14px; height:14px; }
+
+  .result-footer{ display:flex; justify-content: flex-end; padding: 12px 0 14px; }
+  .copy-all{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); background: transparent;
+    border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .copy-all:hover{ border-color: var(--accent-dim); color: var(--accent); }
+  .copy-all.copied{ border-color: var(--accent); color: var(--accent); }
+
+  .count{ margin-top: 26px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-faint); text-align: center; }
+
+  .signed-in-as{
+    margin-top: 34px; padding: 12px 16px; border: 1px dashed var(--border); border-radius: 10px;
+    color: var(--text-faint); font-size: 12px; line-height: 1.6; display:flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+
+  @media (max-width: 480px){
+    .stage{ padding: 28px 14px 40px; }
+    h1{ font-size: 25px; }
+    .field-label{ width: 64px; font-size: 10px; }
+    .kbd{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <header>
+    <div class="eyebrow" id="eyebrow">Console de Acessos</div>
+    <h1>Busca de credenciais</h1>
+    <p class="sub" id="subtext">Verificando sua conta Google...</p>
+  </header>
+
+  <div id="gate"></div>
+
+  <div id="app">
+    <div class="search-wrap" id="searchWrap">
+      <div class="search-inner">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" type="text" placeholder="Ex: Rittal, DNS, GMG..." autocomplete="off" spellcheck="false">
+        <span class="kbd">ENTER</span>
+      </div>
+      <div class="scan-bar" id="scanBar"></div>
+    </div>
+
+    <div id="matchList" class="match-list"></div>
+    <div id="stateArea"></div>
+    <div id="resultArea"></div>
+
+    <p class="count" id="countLabel"></p>
+
+    <div class="signed-in-as">
+      <span>Logado como <span class="gate-email" id="signedInEmail"></span></span>
+      <span>Dados carregados diretamente da planilha, em tempo real</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   MAPEAMENTO DE CAMPOS
+   ------------------------------------------------------------
+   Liga os cabeçalhos da planilha (coluna A-I) aos campos
+   usados na tela. Tolerante a variações de espaço/acento/maiúscula.
+============================================================ */
+const HEADER_MAP = {
+  SERVICO: 'servico',
+  MODELO: 'modelo',
+  URL: 'url',
+  USER: 'user',
+  USER2: 'user2',
+  SENHA1: 'senha1',
+  SENHA2: 'senha2',
+  SENHA3: 'senha3',
+  SENHA4: 'senha4'
+};
+
+const FIELD_DEFS = [
+  { key: "modelo", label: "Modelo" },
+  { key: "url",    label: "URL",     isLink: true },
+  { key: "user",   label: "Usuário" },
+  { key: "user2",  label: "Usuário 2" },
+  { key: "senha1", label: "Senha 1", secret: true },
+  { key: "senha2", label: "Senha 2", secret: true },
+  { key: "senha3", label: "Senha 3", secret: true },
+  { key: "senha4", label: "Senha 4", secret: true },
+];
+
+function normalizeKey(str){
+  return (str || '').toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function toDados(rawRows){
+  return (rawRows || []).map(row => {
+    const obj = {};
+    Object.keys(row).forEach(rawKey => {
+      const canon = HEADER_MAP[normalizeKey(rawKey)];
+      if (canon) obj[canon] = row[rawKey] || '';
+    });
+    return obj;
+  }).filter(o => o.servico && o.servico.trim());
+}
+
+/* ============================================================
+   ELEMENTOS / ESTADO
+============================================================ */
+const gate         = document.getElementById('gate');
+const appEl        = document.getElementById('app');
+const eyebrow      = document.getElementById('eyebrow');
+const subtext      = document.getElementById('subtext');
+const signedInEmail= document.getElementById('signedInEmail');
+
+const searchInput = document.getElementById('searchInput');
+const matchListEl = document.getElementById('matchList');
+const stateArea   = document.getElementById('stateArea');
+const resultArea  = document.getElementById('resultArea');
+const countLabel  = document.getElementById('countLabel');
+const scanBar     = document.getElementById('scanBar');
+const searchWrap  = document.getElementById('searchWrap');
+
+let DADOS = [];
+let activeIndex = null;
+
+const ICON_COPY  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+const ICON_EYE   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.7 18.7 0 0 1 4.22-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+/* ============================================================
+   TELA DE ACESSO (loading / negado / erro)
+============================================================ */
+function showGate(kind, opts){
+  opts = opts || {};
+  appEl.style.display = 'none';
+  if (kind === 'loading'){
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'Console de Acessos';
+    subtext.textContent = 'Verificando sua conta Google...';
+    gate.innerHTML = `
+      <div class="gate-card">
+        <div class="gate-title"><span class="dot-loader"><span></span><span></span><span></span></span>${opts.message || 'Carregando...'}</div>
+        <div class="gate-text">Isso confirma, no servidor, se esta conta pode ver os dados.</div>
+      </div>`;
+  } else if (kind === 'denied'){
+    eyebrow.className = 'eyebrow locked';
+    eyebrow.textContent = 'Acesso restrito';
+    subtext.textContent = 'Esta conta não tem permissão para ver estes dados.';
+    gate.innerHTML = `
+      <div class="gate-card denied">
+        <div class="gate-title denied">Acesso negado</div>
+        <div class="gate-text">
+          Você está logado neste navegador como
+          ${opts.email ? `<span class="gate-email">${escapeHtml(opts.email)}</span>` : '<i>uma conta não identificada</i>'}.
+          Este painel só libera os dados para contas autorizadas.<br><br>
+          Se você deveria ter acesso, saia da conta atual e entre com a conta correta
+          (ou peça para o administrador da planilha adicionar seu e-mail à lista de autorizados), depois recarregue esta página.
+        </div>
+      </div>`;
+  } else if (kind === 'error'){
+    eyebrow.className = 'eyebrow locked';
+    eyebrow.textContent = 'Erro';
+    subtext.textContent = 'Não foi possível carregar os dados.';
+    gate.innerHTML = `
+      <div class="gate-card denied">
+        <div class="gate-title denied">Algo deu errado</div>
+        <div class="gate-text">${escapeHtml(opts.message || 'Erro desconhecido.')}</div>
+      </div>`;
+  }
+}
+
+function showApp(email){
+  gate.innerHTML = '';
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Console de Acessos';
+  subtext.textContent = 'Digite o nome do serviço (coluna SERVIÇO) para localizar os dados de acesso.';
+  signedInEmail.textContent = email;
+  appEl.style.display = 'block';
+}
+
+/* ============================================================
+   CARREGAMENTO — chama o servidor (Code.gs)
+============================================================ */
+function init(){
+  showGate('loading', { message: 'Verificando permissão de acesso...' });
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run){
+    showGate('error', { message: 'Esta página precisa ser aberta pela URL do aplicativo (implantação do Apps Script), não como um arquivo local — só assim o Google consegue confirmar sua conta.' });
+    return;
+  }
+
+  google.script.run.withSuccessHandler(onUsuario).withFailureHandler(onErro).getUsuarioAtual();
+}
+
+function onUsuario(info){
+  if (!info || !info.autorizado){
+    showGate('denied', { email: info ? info.email : '' });
+    return;
+  }
+  showGate('loading', { message: 'Carregando dados da planilha...' });
+  google.script.run.withSuccessHandler(function(rows){ onDados(rows, info.email); }).withFailureHandler(onErro).getDados();
+}
+
+function onDados(rawRows, email){
+  DADOS = toDados(rawRows);
+  showApp(email);
+  handleInput();
+}
+
+function onErro(err){
+  const msg = (err && err.message) ? err.message : String(err);
+  if (msg.indexOf('ACESSO_NEGADO') !== -1){
+    showGate('denied', {});
+  } else {
+    showGate('error', { message: msg });
+  }
+}
+
+/* ============================================================
+   BUSCA
+============================================================ */
+function normalize(str){
+  return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function runScanEffect(){
+  scanBar.classList.remove('run');
+  searchWrap.classList.remove('pulse');
+  requestAnimationFrame(() => {
+    scanBar.classList.add('run');
+    searchWrap.classList.add('pulse');
+  });
+}
+
+function getMatches(term){
+  const t = normalize(term);
+  if (!t) return [];
+  return DADOS.map((item, idx) => ({ item, idx })).filter(({ item }) => normalize(item.servico).includes(t));
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  }catch(e){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    }catch(e2){ return false; }
+  }
+}
+
+function flashCopied(btn){
+  btn.classList.add('copied');
+  const original = btn.innerHTML;
+  btn.innerHTML = ICON_CHECK;
+  setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1300);
+}
+
+function mask(value){ return '•'.repeat(Math.min(value.length, 14)) || '••••'; }
+
+function renderMatchList(matches, term){
+  matchListEl.innerHTML = '';
+  if (!term || matches.length <= 1) return;
+  matches.slice(0, 8).forEach(({ item, idx }) => {
+    const chip = document.createElement('div');
+    chip.className = 'match-chip' + (idx === activeIndex ? ' active' : '');
+    chip.textContent = item.servico;
+    chip.addEventListener('click', () => selectItem(idx));
+    matchListEl.appendChild(chip);
+  });
+}
+
+function renderState(message){
+  resultArea.innerHTML = '';
+  stateArea.innerHTML = '';
+  if (message){
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.innerHTML = message;
+    stateArea.appendChild(p);
+  }
+}
+
+function buildIconBtn(title, iconHtml){
+  const btn = document.createElement('button');
+  btn.className = 'icon-btn';
+  btn.type = 'button';
+  btn.title = title;
+  btn.innerHTML = iconHtml;
+  return btn;
+}
+
+function buildFieldRow(def){
+  const row = document.createElement('div');
+  row.className = 'field-row';
+
+  const label = document.createElement('div');
+  label.className = 'field-label';
+  label.textContent = def.label;
+  row.appendChild(label);
+
+  const valueWrap = document.createElement('div');
+  valueWrap.className = 'field-value-wrap';
+
+  const isUrl = def.isLink && /^https?:\/\//i.test(def.value);
+
+  if (isUrl){
+    const span = document.createElement('span');
+    span.className = 'field-value';
+    const a = document.createElement('a');
+    a.href = def.value; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = def.value;
+    span.appendChild(a);
+    valueWrap.appendChild(span);
+  } else if (def.secret){
+    const span = document.createElement('span');
+    span.className = 'field-value secret';
+    span.textContent = mask(def.value);
+    span.dataset.masked = 'true';
+    valueWrap.appendChild(span);
+
+    const eyeBtn = buildIconBtn('Mostrar/ocultar', ICON_EYE);
+    eyeBtn.addEventListener('click', () => {
+      const isMasked = span.dataset.masked === 'true';
+      if (isMasked){ span.textContent = def.value; span.dataset.masked = 'false'; eyeBtn.innerHTML = ICON_EYE_OFF; }
+      else { span.textContent = mask(def.value); span.dataset.masked = 'true'; eyeBtn.innerHTML = ICON_EYE; }
+    });
+    row.appendChild(valueWrap);
+    row.appendChild(eyeBtn);
+    const copyBtn = buildIconBtn('Copiar', ICON_COPY);
+    copyBtn.addEventListener('click', async () => { if (await copyText(def.value)) flashCopied(copyBtn); });
+    row.appendChild(copyBtn);
+    return row;
+  } else {
+    const span = document.createElement('span');
+    span.className = 'field-value';
+    span.textContent = def.value;
+    valueWrap.appendChild(span);
+  }
+
+  row.appendChild(valueWrap);
+  const copyBtn = buildIconBtn('Copiar', ICON_COPY);
+  copyBtn.addEventListener('click', async () => { if (await copyText(def.value)) flashCopied(copyBtn); });
+  row.appendChild(copyBtn);
+  return row;
+}
+
+function renderResult(item){
+  const rows = FIELD_DEFS.map(def => ({ ...def, value: (item[def.key] || '').toString().trim() })).filter(def => def.value.length > 0);
+
+  resultArea.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'result-card';
+  ['tl','tr','bl','br'].forEach(pos => {
+    const c = document.createElement('div');
+    c.className = 'corner ' + pos;
+    card.appendChild(c);
+  });
+
+  const head = document.createElement('div');
+  head.className = 'result-head';
+  const title = document.createElement('div');
+  title.className = 'result-title';
+  title.textContent = item.servico;
+  head.appendChild(title);
+  if (item.modelo && item.modelo.trim()){
+    const badge = document.createElement('span');
+    badge.className = 'result-model';
+    badge.textContent = item.modelo.trim();
+    head.appendChild(badge);
+  }
+  card.appendChild(head);
+
+  const fieldList = document.createElement('div');
+  fieldList.className = 'field-list';
+  if (rows.length === 0){
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = 'Nenhum dado adicional cadastrado para este serviço.';
+    fieldList.appendChild(p);
+  } else {
+    rows.forEach(def => fieldList.appendChild(buildFieldRow(def)));
+  }
+  card.appendChild(fieldList);
+
+  if (rows.length > 1){
+    const footer = document.createElement('div');
+    footer.className = 'result-footer';
+    const copyAllBtn = document.createElement('button');
+    copyAllBtn.className = 'copy-all';
+    copyAllBtn.type = 'button';
+    copyAllBtn.textContent = 'Copiar registro completo';
+    copyAllBtn.addEventListener('click', async () => {
+      const text = rows.map(r => `${r.label}: ${r.value}`).join('\n');
+      const ok = await copyText(text);
+      if (ok){
+        copyAllBtn.classList.add('copied');
+        const original = copyAllBtn.textContent;
+        copyAllBtn.textContent = 'Copiado!';
+        setTimeout(() => { copyAllBtn.classList.remove('copied'); copyAllBtn.textContent = original; }, 1300);
+      }
+    });
+    footer.appendChild(copyAllBtn);
+    card.appendChild(footer);
+  }
+
+  resultArea.appendChild(card);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function selectItem(idx){
+  activeIndex = idx;
+  runScanEffect();
+  renderState('');
+  renderResult(DADOS[idx]);
+  renderMatchList(getMatches(searchInput.value), searchInput.value);
+}
+
+function handleInput(){
+  const term = searchInput.value;
+  const matches = getMatches(term);
+
+  countLabel.textContent = `${DADOS.length} serviço(s) cadastrado(s)`;
+
+  if (!term.trim()){
+    activeIndex = null;
+    matchListEl.innerHTML = '';
+    resultArea.innerHTML = '';
+    renderState('Comece digitando o nome do serviço (coluna SERVIÇO).');
+    return;
+  }
+  if (matches.length === 0){
+    activeIndex = null;
+    matchListEl.innerHTML = '';
+    resultArea.innerHTML = '';
+    renderState(`Nenhum serviço encontrado para <b>${escapeHtml(term)}</b>.`);
+    return;
+  }
+  if (matches.length === 1){ selectItem(matches[0].idx); return; }
+
+  const stillValid = matches.some(m => m.idx === activeIndex);
+  if (!stillValid){
+    activeIndex = matches[0].idx;
+    renderResult(DADOS[activeIndex]);
+    runScanEffect();
+  }
+  renderState('');
+  renderMatchList(matches, term);
+}
+
+searchInput.addEventListener('input', handleInput);
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    const matches = getMatches(searchInput.value);
+    if (matches.length > 0) selectItem(matches[0].idx);
+  }
+});
+
+init();
+</script>
+
+</body>
+</html>
